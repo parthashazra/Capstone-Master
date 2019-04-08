@@ -1,0 +1,194 @@
+---
+title: 'Capstone : Milestone Report (WK 2)'
+author: "Partha Hazra"
+date: "April 8, 2019"
+output: ioslides_presentation
+---
+
+## Introduction to Milestone Report
+
+The goal of this project is just to display that I'm gotten used to working with the 
+data as well as I'm on track to create prediction algorithm.
+
+- You can get the related files generated in all phases of this report in following 
+Github page.
+
+https://github.com/parthashazra/Capstone-Master/upload/master/WK-2%20Milestone%20Reporting
+
+- Following R libraries are used for this analysis.
+
+```{r echo = TRUE,warning = FALSE,message = FALSE}
+library(tm)
+library(NLP)
+library(RWeka)
+library(googleVis)
+library(wordcloud)
+```
+## Data Gathering for Milestone Report
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval=FALSE}
+urlSwift <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset
+/Coursera-SwiftKey.zip"
+download.file(url = urlSwift,destfile = "D:/Data Science/JHU/Capstone 
+              Project/WK 2 - Milestone Report/Coursera-SwiftKey.zip")
+unlink(urlSwift)
+setwd("D:/Data Science/JHU/Capstone Project/WK 2 - Milestone Report")
+unzip(zipfile = "Coursera-SwiftKey.zip")
+```
+```{r echo = TRUE,warning = FALSE,message = FALSE,eval=FALSE}
+blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", 
+                   skipNul=TRUE)
+news <- readLines("./final/en_US/en_US.news.txt", encoding = "UTF-8", 
+                  skipNul=TRUE)
+twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", 
+                     skipNul=TRUE)
+```
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval=FALSE}
+sampleTwitter <- twitter[sample(1:length(twitter),500)]
+sampleNews <- news[sample(1:length(news),500)]
+sampleBlogs <- blogs[sample(1:length(blogs),500)]
+textSample <- c(sampleTwitter,sampleNews,sampleBlogs)
+
+writeLines(textSample, "./textSample.txt")
+```
+The raw file contents being so large, I have created a smaple file,textSample.txt,
+from the raw texts by sampling 500 entities from each one of the 3 files.
+
+I will continue rest of my data exploration on this sample file except next slide.
+
+## Basic Data Exploration
+
+Let's check the basic information about the file in en-US.
+
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval = FALSE}
+blogsFile <- file.info("./final/en_US/en_US.blogs.txt")$size / 1024.0 / 1024.0
+newsFile <- file.info("./final/en_US/en_US.news.txt")$size / 1024.0 / 1024.0
+twitterFile <- file.info("./final/en_US/en_US.twitter.txt")$size / 1024.0 / 1024.0
+sampleFile <- file.info("./textSample.txt")$size / 1024.0 / 1024.0
+
+blogsLength <- length(blogs)
+newsLength <- length(news)
+twitterLength <- length(twitter)
+sampleLength <- length(textSample)
+
+blogsWords <- sum(sapply(gregexpr("\\S+", blogs), length))
+newsWords <- sum(sapply(gregexpr("\\S+", news), length))
+twitterWords <- sum(sapply(gregexpr("\\S+", twitter), length))
+sampleWords <- sum(sapply(gregexpr("\\S+", textSample), length))
+
+fileSummary <- data.frame(
+    fileName = c("Blogs","News","Twitter", "Aggregated Sample"),
+    fileSize = c(round(blogsFile, digits = 2), 
+                 round(newsFile,digits = 2), 
+                 round(twitterFile, digits = 2),
+                 round(sampleFile, digits = 2)),
+    lineCount = c(blogsLength, newsLength, twitterLength, sampleLength),
+    wordCount = c(blogsWords, newsWords, twitterWords, sampleLength)                  
+)
+
+colnames(fileSummary) <- c("File Name", "Size(in MB)", "Line Count", "Word Count")
+
+saveRDS(fileSummary, file = "./fileSummary.Rda")
+fileSummaryDF <- readRDS("./fileSummary.Rda")
+```
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval = TRUE}
+setwd("D:/Data Science/JHU/Capstone Project/WK 2 - Milestone Report")
+rawfileSummary <- readRDS("./fileSummary.Rda")
+```
+```{r echo = TRUE}
+print(rawfileSummary)
+```
+You can get extract the information from fileSummary.Rda.
+
+## Transformation of Sample File to Text Corpus
+Now we will clean the data in sample text by removing punctuation mark,
+white spaces, profanity words, stop words from english dictionary.
+After cleaning the data, we will create a text corpus which will be used
+in tokenization section.
+
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval=FALSE}
+theSampleCon <- file("./textSample.txt")
+theSample <- readLines(theSampleCon)
+close(theSampleCon)
+
+## Text corpus
+cleanSample <- Corpus(VectorSource(theSample))
+cleanSample <- tm_map(cleanSample,
+                      content_transformer(function(x) 
+                          iconv(x, to="UTF-8", sub="byte")))
+
+## Transformation
+cleanSample <- tm_map(cleanSample, content_transformer(tolower))
+cleanSample <- tm_map(cleanSample, content_transformer(removePunctuation))
+cleanSample <- tm_map(cleanSample, content_transformer(removeNumbers))
+
+removeURL <- function(x) gsub("http[[:alnum:]]*", "", x) 
+cleanSample <- tm_map(cleanSample, content_transformer(removeURL))
+
+cleanSample <- tm_map(cleanSample, stripWhitespace)
+cleanSample <- tm_map(cleanSample, removeWords, stopwords("english"))
+
+profanityWords <- as.character(read.table("./profanityfilter.txt", header = FALSE))
+cleanSample <- tm_map(cleanSample, removeWords, profanityWords)
+
+cleanSample <- tm_map(cleanSample, stemDocument)
+cleanSample <- tm_map(cleanSample, stripWhitespace)
+
+## Saving the final corpus
+saveRDS(cleanSample, file = "./finalCorpus.RDS")
+```
+
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval = TRUE}
+setwd("D:/Data Science/JHU/Capstone Project/WK 2 - Milestone Report")
+sampledtextCorpusDF <- data.frame(readRDS("./finalCorpus.RDS")$content,
+stringsAsFactors = FALSE)
+```
+```{r echo = TRUE}
+head(sampledtextCorpusDF)
+```
+
+Please take a look in the corpus file extracted and stored in finalCorpus.RDS.
+
+## Building n-Gram Tokens
+
+In this section, I have created a function for n-Gram tokenization to build
+unigram, bigram and tigram tokens. Please review the files unigram.RDS,
+bigram.RDS & trigram.RDS.
+
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval=FALSE}
+finalCorpus <- readRDS("./finalCorpus.RDS")
+finalCorpusDF <-data.frame(finalCorpus$content, stringsAsFactors = FALSE)
+```
+```{r echo = TRUE,warning = FALSE,message = FALSE,eval=FALSE}
+ngramTokenizer <- function(theCorpus, ngramCount) {
+    ngramFunction <- NGramTokenizer(theCorpus,
+                                    Weka_control(min = ngramCount, 
+                                                 max = ngramCount, 
+                                                 delimiters = " \\r\\n\\t
+                                                 .,;:\"()?!"))
+    ngramFunction <- data.frame(table(ngramFunction))
+    ngramFunction <- ngramFunction[order(ngramFunction$Freq, 
+                                         decreasing = TRUE),][1:10,]
+    colnames(ngramFunction) <- c("String","Count")
+    ngramFunction
+}
+finalCorpusDF <-data.frame(finalCorpus$content, stringsAsFactors = FALSE)
+```
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval=FALSE}
+unigram <- ngramTokenizer(finalCorpusDF, 1)
+saveRDS(unigram, file = "./unigram.RDS")
+bigram <- ngramTokenizer(finalCorpusDF, 2)
+saveRDS(bigram, file = "./bigram.RDS")
+trigram <- ngramTokenizer(finalCorpusDF, 3)
+saveRDS(trigram, file = "./trigram.RDS")
+```
+## Creating a wordcloud
+
+```{r echo = FALSE,warning = FALSE,message = FALSE,eval=TRUE}
+sampleTextCorpus <- readRDS("./finalCorpus.RDS")
+ngramSample <- TermDocumentMatrix(sampleTextCorpus)
+wcloudSample <- as.matrix(ngramSample)
+wcloudSorted <- sort(rowSums(wcloudSample),decreasing=TRUE)
+wcloudPlot <- data.frame(word = names(wcloudSorted),freq=wcloudSorted)
+wordcloud(wcloudPlot$word,wcloudPlot$freq, c(5,.3),50, random.order=FALSE,
+          colors=brewer.pal(12, "Set3"))
+```
