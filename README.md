@@ -31,3 +31,4 @@ N/A
 
 1. Shiny Application is available in [https://parthashazrads.shinyapps.io/nxtword/](https://parthashazrads.shinyapps.io/nxtword/)
 2. Application code as well as generated nGram files are stored in GitHub repo: [https://github.com/parthashazra/Capstone-Master](https://github.com/parthashazra/Capstone-Master)
+3. Shiny App presentation is available in [http://rpubs.com/parthashazra/NXTWord](http://rpubs.com/parthashazra/NXTWord)
