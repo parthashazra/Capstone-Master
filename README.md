@@ -13,20 +13,21 @@ https://github.com/parthashazra/Capstone-Master/upload/master/WK-2%20Milestone%2
 
 ## Week 3
 
-TBD
+Quiz answered
 
 ## Week 4
 
-TBD
+Quiz answered
 
 ## Week 5
 
-TBD
+N/A
 
 ## Week 6
 
-TBD
+N/A
 
 ## Week 7
 
-TBD
+1. Shiny Application is available in [https://parthashazrads.shinyapps.io/nxtword/](https://parthashazrads.shinyapps.io/nxtword/)
+2. Application code as well as generated nGram files are stored in GitHub repo: [https://github.com/parthashazra/Capstone-Master](https://github.com/parthashazra/Capstone-Master)
